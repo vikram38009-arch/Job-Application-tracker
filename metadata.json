@@ -1,0 +1,6 @@
+{
+  "name": "JobTracker",
+  "description": "A beautiful, modern job application tracker with status workflow, analytics, filtering, and step-by-step full-stack learning insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
