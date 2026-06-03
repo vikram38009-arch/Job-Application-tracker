@@ -105,11 +105,18 @@ if USE_POSTGRES:
     }
     # Check if a combined DATABASE_URL is provided in the environment
     db_url = os.environ.get('DATABASE_URL')
+    render_db_url = os.environ.get('RENDER_DATABASE_URL')
+    
+    # Use RENDER_DATABASE_URL if deployed, otherwise use DATABASE_URL
+    if not db_url and render_db_url:
+        db_url = render_db_url
+    
     if db_url:
         try:
             import dj_database_url
             DATABASES['default'] = dj_database_url.parse(db_url, conn_max_age=600)
-            print(f"[DATABASE ENGINE] Successfully configured default database from DATABASE_URL. Host: {DATABASES['default'].get('HOST')}, Engine: {DATABASES['default'].get('ENGINE')}")
+            db_host = DATABASES['default'].get('HOST', 'unknown')
+            print(f"[DATABASE ENGINE] Successfully configured default database from DATABASE_URL. Host: {db_host}, Engine: {DATABASES['default'].get('ENGINE')}")
         except Exception as parse_err:
             print(f"[DATABASE ENGINE] Error importing or parsing via dj_database_url: {parse_err}. Trying fallback parser...")
             # Fallback manual parsing in case dj_database_url is not ready
