@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,6 +82,8 @@ if DATABASE_URL:
             ssl_require=True,
         )
     }
+elif not DEBUG:
+    raise ImproperlyConfigured('DATABASE_URL or RENDER_DATABASE_URL must be set in production')
 else:
     DATABASES = {
         'default': {
