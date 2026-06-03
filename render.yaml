@@ -3,6 +3,7 @@ name: job-application-tracker
 env: python
 root: backend
 buildCommand: pip install -r requirements.txt
+preDeployCommand: python manage.py migrate && python manage.py collectstatic --noinput
 startCommand: gunicorn jobtracker.wsgi --chdir . --bind 0.0.0.0:$PORT
 plan: free
 autoDeploy: true
