@@ -13,6 +13,8 @@ from rest_framework_simplejwt.views import (
 router = DefaultRouter()
 router.register(r'applications', JobApplicationViewSet, basename='jobapplication')
 
+from django.shortcuts import render
+
 def api_root_view(request):
     return JsonResponse({
         "status": "success",
@@ -26,9 +28,17 @@ def api_root_view(request):
         }
     })
 
+def react_index_view(request):
+    try:
+        # Django will look for 'index.html' within our configured DIRS (which points to BASE_DIR / 'static')
+        return render(request, 'index.html')
+    except Exception:
+        # If the React frontend hasn't been built yet, show the REST API index welcome
+        return api_root_view(request)
+
 urlpatterns = [
-    # Root path welcome message
-    path('', api_root_view, name='api_root_welcome'),
+    # Root path: Directly enters website if compiled, otherwise API helper
+    path('', react_index_view, name='react_index'),
     
     path('admin/', admin.site.urls),
     

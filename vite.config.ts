@@ -5,11 +5,16 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: '/static/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    build: {
+      outDir: './backend/static',
+      emptyOutDir: true,
     },
     server: {
       // HMR is disabled via DISABLE_HMR env var.
