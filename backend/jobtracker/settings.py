@@ -1,62 +1,43 @@
-# backend/jobtracker/settings.py
-
 import os
 from pathlib import Path
-from datetime import timedelta
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Automatically load environment variables from .env file if it exists
-# to ensure local secrets like GEMINI_API_KEY or DATABASE_URL are imported.
-for path in [BASE_DIR / '.env', BASE_DIR.parent / '.env']:
-    if path.exists() and path.is_file():
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
-                        continue
-                    if '=' in line:
-                        key, val = line.split('=', 1)
-                        key = key.strip()
-                        val = val.strip()
-                        # Clean quotes
-                        if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                            val = val[1:-1]
-                        os.environ[key] = val
-        except Exception as e:
-            print(f"[ENV ENGINE] Warning: Error reading environment configuration at {path}: {e}")
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-your-secret-key-for-local-development-only'
+# On Render, add a SECRET_KEY environment variable. Locally, it falls back to a default.
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-fallback-key-change-this')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Automatically turns off DEBUG on Render if you set IS_DEPLOYED=True in Render env vars
+DEBUG = os.environ.get('IS_DEPLOYED') is None
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# Add your Render web service URL here automatically
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
 
 # Application definition
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
+    'django.contrib.sessions',  # <--- Make sure this has '.contrib.' in it!
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Third-party utilities installed via pip
-    'corsheaders',  # Essential for React-Django communication!
     'rest_framework',
-    'rest_framework_simplejwt',
-    
-    # Our core custom app containing models and serializers unified in one project name
-    'jobtracker.apps.JobtrackerConfig',
+    'jobtracker',
+    # Your custom apps below:
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Should be as high as possible
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Required for serving static files on Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -70,7 +51,7 @@ ROOT_URLCONF = 'jobtracker.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -85,44 +66,36 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jobtracker.wsgi.application'
 
-# Database
-# PostgreSQL database configurations as requested
-import os
 
-USE_POSTGRES = os.environ.get('USE_POSTGRES', 'True').lower() in ('true', '1', 't', 'y', 'yes')
+# Database Configuration
+# -----------------------------------------------------------------------------
+# If DATABASE_URL or RENDER_DATABASE_URL exists, use it for Render Managed PostgreSQL.
+# Otherwise, fall back to your local development PostgreSQL.
 
-if USE_POSTGRES:
+DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('RENDER_DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
+else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('POSTGRES_DB', 'jobtracker_database'),
-            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'vikram1234'),
-            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+            'NAME': 'jobtracker_database', 
+            'USER': 'postgres',
+            'PASSWORD': 'vikram1234', 
+            'HOST': 'localhost',
+            'PORT': '5432',
         }
     }
-    # Check if a combined DATABASE_URL is provided in the environment
-    db_url = os.environ.get('DATABASE_URL')
-    if db_url:
-        try:
-            import dj_database_url
-            DATABASES['default'] = dj_database_url.config(default=db_url, conn_max_age=600)
-        except ImportError:
-            pass
-else:
-    DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'jobtracker_database',   # MUST match database name
-        'USER': 'postgres',
-        'PASSWORD': 'vikram1234',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+
 
 # Password validation
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -138,35 +111,23 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 # Internationalization
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+
 # Static files (CSS, JavaScript, Images)
+# -----------------------------------------------------------------------------
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Enable WhiteNoise's storage engine for compression and caching (recommended for Render)
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# CORS configuration to allow local React app to connect
-CORS_ALLOW_ALL_ORIGINS = True  # For local development convenience
-
-# Tell Django REST Framework to default to JWT authentications for any login endpoints.
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    )
-}
-
-# Set up JWT Token lifespans and security configs
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
