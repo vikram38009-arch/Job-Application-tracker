@@ -1,7 +1,7 @@
 # backend/jobtracker/urls.py
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 from jobtracker.views import JobApplicationViewSet, register_user, CustomTokenObtainPairView, JobApplicationStatsView, ai_analyze_view
@@ -37,9 +37,6 @@ def react_index_view(request):
         return api_root_view(request)
 
 urlpatterns = [
-    # Root path: Directly enters website if compiled, otherwise API helper
-    path('', react_index_view, name='react_index'),
-    
     path('admin/', admin.site.urls),
     
     # 1. Mount stats endpoint
@@ -59,5 +56,8 @@ urlpatterns = [
 
     # 4. Active Register (User Signup) route.
     path('api/register/', register_user, name='register'),
+
+    # Catch-all: Route everything else to the React frontend index
+    re_path(r'^.*$', react_index_view, name='react_index'),
 ]
 

@@ -108,8 +108,10 @@ if USE_POSTGRES:
     if db_url:
         try:
             import dj_database_url
-            DATABASES['default'] = dj_database_url.config(default=db_url, conn_max_age=600)
-        except ImportError:
+            DATABASES['default'] = dj_database_url.parse(db_url, conn_max_age=600)
+            print(f"[DATABASE ENGINE] Successfully configured default database from DATABASE_URL. Host: {DATABASES['default'].get('HOST')}, Engine: {DATABASES['default'].get('ENGINE')}")
+        except Exception as parse_err:
+            print(f"[DATABASE ENGINE] Error importing or parsing via dj_database_url: {parse_err}. Trying fallback parser...")
             # Fallback manual parsing in case dj_database_url is not ready
             try:
                 # format: postgresql://username:password@hostname:port/dbname
@@ -141,7 +143,6 @@ if USE_POSTGRES:
                     host = host_port
                     port = '5432'
                 
-                # Render db_name checks
                 DATABASES['default'] = {
                     'ENGINE': 'django.db.backends.postgresql',
                     'NAME': db_name,
@@ -150,6 +151,7 @@ if USE_POSTGRES:
                     'HOST': host,
                     'PORT': port,
                 }
+                print(f"[DATABASE ENGINE] Successfully applied manual URL fallback configuration. Host: {host}")
             except Exception as e:
                 print(f"[DB PARSER FALLBACK] Error parsing fallback URL: {e}")
 else:
@@ -221,4 +223,3 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
