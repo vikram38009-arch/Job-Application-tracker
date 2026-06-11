@@ -12,8 +12,3 @@ envVars:
     value: 'True'
   - key: DJANGO_SETTINGS_MODULE
     value: jobtracker.settings
-envVars:
-  - key: IS_DEPLOYED
-    value: 'True'
-  - key: DJANGO_SETTINGS_MODULE
-    value: jobtracker.settings
