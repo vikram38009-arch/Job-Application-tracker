@@ -104,12 +104,9 @@ if USE_POSTGRES:
         }
     }
     # Check if a combined DATABASE_URL is provided in the environment
-    db_url = os.environ.get('DATABASE_URL')
+    # Prioritize RENDER_DATABASE_URL for production, fall back to DATABASE_URL for local development
     render_db_url = os.environ.get('RENDER_DATABASE_URL')
-    
-    # Use RENDER_DATABASE_URL if deployed, otherwise use DATABASE_URL
-    if not db_url and render_db_url:
-        db_url = render_db_url
+    db_url = render_db_url if render_db_url else os.environ.get('DATABASE_URL')
     
     if db_url:
         try:
